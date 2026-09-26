@@ -1,0 +1,516 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+
+class Product {
+
+    private int id;
+    private String name;
+    private double price;
+    private int stock;
+
+    public Product(int id, String name, double price, int stock) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+        this.stock = stock;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public int getStock() {
+        return stock;
+    }
+
+    @Override
+    public String toString() {
+        return name + " - M" + String.format("%.2f", price)
+                + " (Stock: " + stock + ")";
+    }
+}
+
+public class Main extends JFrame implements ActionListener {
+
+    private static final String CONNECTION_STRING =
+            "jdbc:sqlserver://localhost:1433;"
+            + "databaseName=BrambleRetail;"
+            + "integratedSecurity=true;"
+            + "encrypt=false";
+
+    private JComboBox<Product> productComboBox;
+    private JTextField quantityField;
+    private JLabel stockLabel;
+    private JLabel totalLabel;
+    private JButton saleButton;
+    private JButton refreshButton;
+    private JButton historyButton;
+
+    public BrambleDemo () {
+
+        setTitle("Bramble & Co. Retail - Point of Sale");
+        setSize(600, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(7, 2, 10, 10));
+
+        JLabel productLabel = new JLabel("Select Product:");
+        productComboBox = new JComboBox<>();
+        productComboBox.addActionListener(this);
+
+        JLabel quantityLabel = new JLabel("Quantity:");
+        quantityField = new JTextField();
+
+        JLabel stockTextLabel = new JLabel("Available Stock:");
+        stockLabel = new JLabel("0");
+
+        JLabel totalTextLabel = new JLabel("Total:");
+        totalLabel = new JLabel("M0.00");
+
+        saleButton = new JButton("Complete Sale");
+        saleButton.addActionListener(this);
+
+        refreshButton = new JButton("Refresh Products");
+        refreshButton.addActionListener(this);
+
+        historyButton = new JButton("Sales History");
+        historyButton.addActionListener(this);
+
+        panel.add(productLabel);
+        panel.add(productComboBox);
+
+        panel.add(quantityLabel);
+        panel.add(quantityField);
+
+        panel.add(stockTextLabel);
+        panel.add(stockLabel);
+
+        panel.add(totalTextLabel);
+        panel.add(totalLabel);
+
+        panel.add(saleButton);
+        panel.add(refreshButton);
+
+        panel.add(historyButton);
+        panel.add(new JLabel(""));
+
+        add(panel);
+
+        loadProducts();
+
+        setVisible(true);
+    }
+
+    private void loadProducts() {
+
+        productComboBox.removeAllItems();
+
+        String sql = "SELECT id, name, price, stock FROM products";
+
+        try (
+            Connection connection =
+                    DriverManager.getConnection(CONNECTION_STRING);
+
+            Statement statement =
+                    connection.createStatement();
+
+            ResultSet resultSet =
+                    statement.executeQuery(sql)
+        ) {
+
+            while (resultSet.next()) {
+
+                Product product = new Product(
+                        resultSet.getInt("id"),
+                        resultSet.getString("name"),
+                        resultSet.getDouble("price"),
+                        resultSet.getInt("stock")
+                );
+
+                productComboBox.addItem(product);
+            }
+
+            updateProductInformation();
+
+        } catch (SQLException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Database Error:\n" + e.getMessage()
+            );
+        }
+    }
+
+    private void updateProductInformation() {
+
+        Product product =
+                (Product) productComboBox.getSelectedItem();
+
+        if (product != null) {
+
+            stockLabel.setText(
+                    String.valueOf(product.getStock())
+            );
+
+            calculateTotal();
+        }
+    }
+
+    private void calculateTotal() {
+
+        Product product =
+                (Product) productComboBox.getSelectedItem();
+
+        if (product == null) {
+            return;
+        }
+
+        try {
+
+            int quantity =
+                    Integer.parseInt(quantityField.getText());
+
+            if (quantity > 0) {
+
+                double total =
+                        product.getPrice() * quantity;
+
+                totalLabel.setText(
+                        "M" + String.format("%.2f", total)
+                );
+
+            } else {
+
+                totalLabel.setText("M0.00");
+            }
+
+        } catch (NumberFormatException e) {
+
+            totalLabel.setText("M0.00");
+        }
+    }
+
+    private void completeSale() {
+
+        Product product =
+                (Product) productComboBox.getSelectedItem();
+
+        if (product == null) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please select a product."
+            );
+
+            return;
+        }
+
+        int quantity;
+
+        try {
+
+            quantity =
+                    Integer.parseInt(quantityField.getText());
+
+        } catch (NumberFormatException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter a valid quantity."
+            );
+
+            return;
+        }
+
+        if (quantity <= 0) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Quantity must be greater than zero."
+            );
+
+            return;
+        }
+
+        Connection connection = null;
+
+        try {
+
+            connection =
+                    DriverManager.getConnection(
+                            CONNECTION_STRING
+                    );
+
+            connection.setAutoCommit(false);
+
+            String stockSql =
+                    "SELECT stock FROM products WHERE id = ?";
+
+            int currentStock;
+
+            try (
+                PreparedStatement statement =
+                        connection.prepareStatement(stockSql)
+            ) {
+
+                statement.setInt(1, product.getId());
+
+                try (
+                    ResultSet resultSet =
+                            statement.executeQuery()
+                ) {
+
+                    if (!resultSet.next()) {
+
+                        throw new SQLException(
+                                "Product not found."
+                        );
+                    }
+
+                    currentStock =
+                            resultSet.getInt("stock");
+                }
+            }
+
+            if (quantity > currentStock) {
+
+                throw new SQLException(
+                        "Not enough stock available."
+                );
+            }
+
+            String updateSql =
+                    "UPDATE products "
+                    + "SET stock = stock - ? "
+                    + "WHERE id = ?";
+
+            try (
+                PreparedStatement statement =
+                        connection.prepareStatement(updateSql)
+            ) {
+
+                statement.setInt(1, quantity);
+                statement.setInt(2, product.getId());
+
+                statement.executeUpdate();
+            }
+
+            String saleSql =
+                    "INSERT INTO sales "
+                    + "(product_id, quantity, date) "
+                    + "VALUES (?, ?, ?)";
+
+            try (
+                PreparedStatement statement =
+                        connection.prepareStatement(saleSql)
+            ) {
+
+                statement.setInt(1, product.getId());
+                statement.setInt(2, quantity);
+
+                statement.setTimestamp(
+                        3,
+                        new Timestamp(
+                                System.currentTimeMillis()
+                        )
+                );
+
+                statement.executeUpdate();
+            }
+
+            connection.commit();
+
+            double total =
+                    product.getPrice() * quantity;
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Sale completed successfully!\n\n"
+                    + "Product: " + product.getName()
+                    + "\nQuantity: " + quantity
+                    + "\nTotal: M"
+                    + String.format("%.2f", total)
+            );
+
+            quantityField.setText("");
+
+            loadProducts();
+
+        } catch (SQLException e) {
+
+            if (connection != null) {
+
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackError) {
+                    System.out.println(
+                            "Rollback failed."
+                    );
+                }
+            }
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Sale failed.\n\n"
+                    + e.getMessage()
+                    + "\n\nNo changes were saved."
+            );
+
+        } finally {
+
+            if (connection != null) {
+
+                try {
+
+                    connection.setAutoCommit(true);
+                    connection.close();
+
+                } catch (SQLException e) {
+
+                    System.out.println(
+                            "Error closing connection."
+                    );
+                }
+            }
+        }
+    }
+
+    private void showSalesHistory() {
+
+        String sql =
+                "SELECT s.id, p.name, s.quantity, s.date "
+                + "FROM sales s "
+                + "JOIN products p "
+                + "ON s.product_id = p.id "
+                + "ORDER BY s.date DESC";
+
+        StringBuilder history =
+                new StringBuilder();
+
+        history.append(
+                "SALE ID   PRODUCT   QUANTITY   DATE\n"
+        );
+
+        history.append(
+                "------------------------------------------\n"
+        );
+
+        try (
+            Connection connection =
+                    DriverManager.getConnection(
+                            CONNECTION_STRING
+                    );
+
+            Statement statement =
+                    connection.createStatement();
+
+            ResultSet resultSet =
+                    statement.executeQuery(sql)
+        ) {
+
+            while (resultSet.next()) {
+
+                history.append(
+                        resultSet.getInt("id")
+                );
+
+                history.append("       ");
+
+                history.append(
+                        resultSet.getString("name")
+                );
+
+                history.append("       ");
+
+                history.append(
+                        resultSet.getInt("quantity")
+                );
+
+                history.append("       ");
+
+                history.append(
+                        resultSet.getTimestamp("date")
+                );
+
+                history.append("\n");
+            }
+
+            JTextArea textArea =
+                    new JTextArea(
+                            history.toString()
+                    );
+
+            textArea.setEditable(false);
+
+            JScrollPane scrollPane =
+                    new JScrollPane(textArea);
+
+            scrollPane.setPreferredSize(
+                    new Dimension(550, 300)
+            );
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    scrollPane,
+                    "Sales History",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+        } catch (SQLException e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Could not load sales history.\n"
+                    + e.getMessage()
+            );
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+
+        if (e.getSource() == productComboBox) {
+
+            updateProductInformation();
+
+        } else if (e.getSource() == saleButton) {
+
+            completeSale();
+
+        } else if (e.getSource() == refreshButton) {
+
+            loadProducts();
+
+        } else if (e.getSource() == historyButton) {
+
+            showSalesHistory();
+        }
+    }
+
+    public static void main(String[] args) {
+
+        SwingUtilities.invokeLater(
+                new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        new Main();
+                    }
+                }
+        );
+    }
+}
