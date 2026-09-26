@@ -1,0 +1,223 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class Main extends JFrame implements ActionListener {
+
+    // GUI components
+    private JComboBox<String> showComboBox;
+    private JTextField ticketField;
+    private JLabel seatsLabel;
+    private JButton bookButton;
+
+    // Each show starts with 100 seats
+    private int concertSeats = 100;
+    private int comedySeats = 100;
+    private int festivalSeats = 100;
+
+    public Main() {
+
+        // Window title
+        setTitle("StarNight Events - Ticket Booking");
+
+        // Window size
+        setSize(450, 300);
+
+        // Close program when window is closed
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Put window in the centre of the screen
+        setLocationRelativeTo(null);
+
+        // Create main panel
+        JPanel panel = new JPanel();
+
+        panel.setLayout(new GridLayout(5, 2, 10, 10));
+
+        // Show selection
+        JLabel showLabel = new JLabel("Select Show:");
+
+        String[] shows = {
+                "Concert Night",
+                "Comedy Night",
+                "Summer Festival"
+        };
+
+        showComboBox = new JComboBox<>(shows);
+
+        // Ticket quantity
+        JLabel ticketLabel = new JLabel("Number of Tickets:");
+
+        ticketField = new JTextField();
+
+        // Remaining seats
+        JLabel remainingLabel = new JLabel("Remaining Seats:");
+
+        seatsLabel = new JLabel("100");
+
+        // Book button
+        bookButton = new JButton("Book Tickets");
+
+        // Listen for button clicks
+        bookButton.addActionListener(this);
+
+        // Add components to panel
+        panel.add(showLabel);
+        panel.add(showComboBox);
+
+        panel.add(ticketLabel);
+        panel.add(ticketField);
+
+        panel.add(remainingLabel);
+        panel.add(seatsLabel);
+
+        panel.add(new JLabel(""));
+        panel.add(bookButton);
+
+        // Add panel to window
+        add(panel);
+
+        // Display the window
+        setVisible(true);
+    }
+
+
+    // This method runs when the Book Tickets button is clicked
+    @Override
+    public void actionPerformed(ActionEvent e) {
+
+        // Get selected show
+        String selectedShow =
+                (String) showComboBox.getSelectedItem();
+
+        // Get ticket quantity
+        String ticketText = ticketField.getText();
+
+        // Check if ticket field is empty
+        if (ticketText.isEmpty()) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter the number of tickets."
+            );
+
+            return;
+        }
+
+        int tickets;
+
+        // Convert ticket input into integer
+        try {
+
+            tickets = Integer.parseInt(ticketText);
+
+        } catch (NumberFormatException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter a valid number."
+            );
+
+            return;
+        }
+
+        // Tickets must be greater than zero
+        if (tickets <= 0) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Number of tickets must be greater than zero."
+            );
+
+            return;
+        }
+
+
+        // Handle Concert Night
+        if (selectedShow.equals("Concert Night")) {
+
+            if (tickets > concertSeats) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Not enough seats available."
+                );
+
+            } else {
+
+                concertSeats = concertSeats - tickets;
+
+                seatsLabel.setText(
+                        String.valueOf(concertSeats)
+                );
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        tickets + " ticket(s) booked successfully!"
+                );
+            }
+        }
+
+
+        // Handle Comedy Night
+        else if (selectedShow.equals("Comedy Night")) {
+
+            if (tickets > comedySeats) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Not enough seats available."
+                );
+
+            } else {
+
+                comedySeats = comedySeats - tickets;
+
+                seatsLabel.setText(
+                        String.valueOf(comedySeats)
+                );
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        tickets + " ticket(s) booked successfully!"
+                );
+            }
+        }
+
+
+        // Handle Summer Festival
+        else if (selectedShow.equals("Summer Festival")) {
+
+            if (tickets > festivalSeats) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Not enough seats available."
+                );
+
+            } else {
+
+                festivalSeats = festivalSeats - tickets;
+
+                seatsLabel.setText(
+                        String.valueOf(festivalSeats)
+                );
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        tickets + " ticket(s) booked successfully!"
+                );
+            }
+        }
+
+        // Clear ticket field after booking
+        ticketField.setText("");
+    }
+
+
+    public static void main(String[] args) {
+
+        new Main();
+    }
+}
