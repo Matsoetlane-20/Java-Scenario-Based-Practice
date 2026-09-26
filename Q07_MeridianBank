@@ -1,0 +1,268 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
+
+
+// Custom exception for invalid operations
+class InvalidOperationException extends Exception {
+
+    public InvalidOperationException(String message) {
+        super(message);
+    }
+}
+
+
+// Account class
+class Account {
+
+    private double balance;
+
+    public Account(double balance) {
+        this.balance = balance;
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+
+    public void deposit(double amount) throws InvalidOperationException {
+
+        if (amount <= 0) {
+            throw new InvalidOperationException(
+                    "Deposit amount must be greater than zero."
+            );
+        }
+
+        balance = balance + amount;
+    }
+
+    public void withdraw(double amount) throws InvalidOperationException {
+
+        if (amount <= 0) {
+            throw new InvalidOperationException(
+                    "Withdrawal amount must be greater than zero."
+            );
+        }
+
+        if (amount > balance) {
+            throw new InvalidOperationException(
+                    "Insufficient balance."
+            );
+        }
+
+        balance = balance - amount;
+    }
+}
+
+
+// Logger class
+class Logger {
+
+    private static final String LOG_FILE = "transactions.txt";
+
+    public static void log(String message) {
+
+        try {
+
+            FileWriter writer = new FileWriter(LOG_FILE, true);
+
+            LocalDateTime now = LocalDateTime.now();
+
+            DateTimeFormatter formatter =
+                    DateTimeFormatter.ofPattern(
+                            "yyyy-MM-dd HH:mm:ss"
+                    );
+
+            writer.write(
+                    "[" + now.format(formatter) + "] "
+                    + message
+                    + System.lineSeparator()
+            );
+
+            writer.close();
+
+        } catch (IOException e) {
+
+            System.out.println(
+                    "Error writing to log file."
+            );
+        }
+    }
+}
+
+
+// Main class
+public class BankDemo{
+
+    public static void main(String[] args) {
+
+        Scanner scanner = new Scanner(System.in);
+
+        Account account = new Account(1000.00);
+
+        int choice;
+
+        do {
+
+            System.out.println();
+            System.out.println("===== MERIDIAN BANK ATM =====");
+            System.out.println("1. Check Balance");
+            System.out.println("2. Deposit");
+            System.out.println("3. Withdraw");
+            System.out.println("4. Exit");
+            System.out.print("Enter your choice: ");
+
+            choice = scanner.nextInt();
+
+            switch (choice) {
+
+                case 1:
+
+                    System.out.println(
+                            "Current balance: M"
+                            + String.format(
+                                    "%.2f",
+                                    account.getBalance()
+                            )
+                    );
+
+                    Logger.log(
+                            "Balance checked. Balance: M"
+                            + String.format(
+                                    "%.2f",
+                                    account.getBalance()
+                            )
+                    );
+
+                    break;
+
+
+                case 2:
+
+                    System.out.print(
+                            "Enter deposit amount: M"
+                    );
+
+                    double depositAmount = scanner.nextDouble();
+
+                    try {
+
+                        account.deposit(depositAmount);
+
+                        System.out.println(
+                                "Deposit successful."
+                        );
+
+                        System.out.println(
+                                "New balance: M"
+                                + String.format(
+                                        "%.2f",
+                                        account.getBalance()
+                                )
+                        );
+
+                        Logger.log(
+                                "Deposit successful: M"
+                                + String.format(
+                                        "%.2f",
+                                        depositAmount
+                                )
+                        );
+
+                    } catch (InvalidOperationException e) {
+
+                        System.out.println(
+                                "Deposit refused: "
+                                + e.getMessage()
+                        );
+
+                        Logger.log(
+                                "Deposit refused: "
+                                + e.getMessage()
+                        );
+                    }
+
+                    break;
+
+
+                case 3:
+
+                    System.out.print(
+                            "Enter withdrawal amount: M"
+                    );
+
+                    double withdrawalAmount =
+                            scanner.nextDouble();
+
+                    try {
+
+                        account.withdraw(withdrawalAmount);
+
+                        System.out.println(
+                                "Withdrawal successful."
+                        );
+
+                        System.out.println(
+                                "New balance: M"
+                                + String.format(
+                                        "%.2f",
+                                        account.getBalance()
+                                )
+                        );
+
+                        Logger.log(
+                                "Withdrawal successful: M"
+                                + String.format(
+                                        "%.2f",
+                                        withdrawalAmount
+                                )
+                        );
+
+                    } catch (InvalidOperationException e) {
+
+                        System.out.println(
+                                "Withdrawal refused: "
+                                + e.getMessage()
+                        );
+
+                        Logger.log(
+                                "Withdrawal refused: "
+                                + e.getMessage()
+                        );
+                    }
+
+                    break;
+
+
+                case 4:
+
+                    System.out.println(
+                            "Thank you for using Meridian Bank."
+                    );
+
+                    Logger.log(
+                            "ATM session ended."
+                    );
+
+                    break;
+
+
+                default:
+
+                    System.out.println(
+                            "Invalid choice."
+                    );
+
+                    Logger.log(
+                            "Invalid menu choice entered."
+                    );
+            }
+
+        } while (choice != 4);
+
+
+        scanner.close();
+    }
+}
