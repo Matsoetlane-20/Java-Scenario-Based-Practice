@@ -1,0 +1,361 @@
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+
+// Package class
+class Package implements Serializable {
+
+    private String id;
+    private String sender;
+    private String recipient;
+    private String status;
+
+    public Package(String id, String sender, String recipient, String status) {
+        this.id = id;
+        this.sender = sender;
+        this.recipient = recipient;
+        this.status = status;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public String getRecipient() {
+        return recipient;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void displayInfo() {
+
+        System.out.println("Package ID: " + id);
+        System.out.println("Sender: " + sender);
+        System.out.println("Recipient: " + recipient);
+        System.out.println("Status: " + status);
+        System.out.println("-------------------------");
+    }
+}
+
+
+// Shipment manager class
+class Shipment {
+
+    private List<Package> packages;
+
+    private static final String FILE_NAME = "packages.dat";
+
+    public Shipment() {
+
+        packages = new ArrayList<>();
+    }
+
+
+    // Add a package
+    public void addPackage(Package packageItem) {
+
+        packages.add(packageItem);
+
+        System.out.println(
+                "Package added successfully."
+        );
+    }
+
+
+    // Display all packages
+    public void displayPackages() {
+
+        if (packages.isEmpty()) {
+
+            System.out.println(
+                    "No packages found."
+            );
+
+            return;
+        }
+
+        System.out.println("===== PACKAGE RECORDS =====");
+
+        for (Package packageItem : packages) {
+
+            packageItem.displayInfo();
+        }
+    }
+
+
+    // Search for a package by ID
+    public void searchById(String id) {
+
+        for (Package packageItem : packages) {
+
+            if (packageItem.getId().equalsIgnoreCase(id)) {
+
+                System.out.println(
+                        "Package found:"
+                );
+
+                packageItem.displayInfo();
+
+                return;
+            }
+        }
+
+        System.out.println(
+                "Package with ID " + id + " was not found."
+        );
+    }
+
+
+    // Save packages to file
+    public void savePackages() {
+
+        try {
+
+            FileOutputStream file =
+                    new FileOutputStream(FILE_NAME);
+
+            ObjectOutputStream output =
+                    new ObjectOutputStream(file);
+
+            output.writeObject(packages);
+
+            output.close();
+            file.close();
+
+            System.out.println(
+                    "Packages saved successfully."
+            );
+
+        } catch (IOException e) {
+
+            System.out.println(
+                    "Error saving packages: "
+                    + e.getMessage()
+            );
+        }
+    }
+
+
+    // Load packages from file
+    @SuppressWarnings("unchecked")
+    public void loadPackages() {
+
+        File file = new File(FILE_NAME);
+
+        if (!file.exists()) {
+
+            System.out.println(
+                    "No saved package records found."
+            );
+
+            return;
+        }
+
+        try {
+
+            FileInputStream inputFile =
+                    new FileInputStream(FILE_NAME);
+
+            ObjectInputStream input =
+                    new ObjectInputStream(inputFile);
+
+            packages =
+                    (List<Package>) input.readObject();
+
+            input.close();
+            inputFile.close();
+
+            System.out.println(
+                    "Packages loaded successfully."
+            );
+
+        } catch (IOException | ClassNotFoundException e) {
+
+            System.out.println(
+                    "Error loading packages: "
+                    + e.getMessage()
+            );
+        }
+    }
+}
+
+
+// Main class
+public class LogisticsDemo {
+
+    public static void main(String[] args) {
+
+        Scanner scanner = new Scanner(System.in);
+
+        Shipment shipment = new Shipment();
+
+        int choice;
+
+        do {
+
+            System.out.println();
+            System.out.println("===== SWIFTSHIP LOGISTICS =====");
+            System.out.println("1. Add Package");
+            System.out.println("2. View Packages");
+            System.out.println("3. Search Package");
+            System.out.println("4. Save Packages");
+            System.out.println("5. Load Packages");
+            System.out.println("6. Exit");
+
+            System.out.print("Enter your choice: ");
+
+            choice = scanner.nextInt();
+            scanner.nextLine();
+
+
+            switch (choice) {
+
+                case 1:
+
+                    System.out.print(
+                            "Enter package ID: "
+                    );
+
+                    String id = scanner.nextLine();
+
+                    System.out.print(
+                            "Enter sender: "
+                    );
+
+                    String sender = scanner.nextLine();
+
+                    System.out.print(
+                            "Enter recipient: "
+                    );
+
+                    String recipient = scanner.nextLine();
+
+                    System.out.println(
+                            "Select status:"
+                    );
+
+                    System.out.println(
+                            "1. Dispatched"
+                    );
+
+                    System.out.println(
+                            "2. In Transit"
+                    );
+
+                    System.out.println(
+                            "3. Delivered"
+                    );
+
+                    System.out.print(
+                            "Enter status choice: "
+                    );
+
+                    int statusChoice =
+                            scanner.nextInt();
+
+                    scanner.nextLine();
+
+                    String status;
+
+                    if (statusChoice == 1) {
+
+                        status = "Dispatched";
+
+                    } else if (statusChoice == 2) {
+
+                        status = "In Transit";
+
+                    } else if (statusChoice == 3) {
+
+                        status = "Delivered";
+
+                    } else {
+
+                        status = "Dispatched";
+
+                        System.out.println(
+                                "Invalid status. "
+                                + "Defaulting to Dispatched."
+                        );
+                    }
+
+
+                    Package newPackage =
+                            new Package(
+                                    id,
+                                    sender,
+                                    recipient,
+                                    status
+                            );
+
+                    shipment.addPackage(newPackage);
+
+                    break;
+
+
+                case 2:
+
+                    shipment.displayPackages();
+
+                    break;
+
+
+                case 3:
+
+                    System.out.print(
+                            "Enter package ID to search: "
+                    );
+
+                    String searchId =
+                            scanner.nextLine();
+
+                    shipment.searchById(searchId);
+
+                    break;
+
+
+                case 4:
+
+                    shipment.savePackages();
+
+                    break;
+
+
+                case 5:
+
+                    shipment.loadPackages();
+
+                    break;
+
+
+                case 6:
+
+                    System.out.println(
+                            "Thank you for using "
+                            + "SwiftShip Logistics."
+                    );
+
+                    break;
+
+
+                default:
+
+                    System.out.println(
+                            "Invalid choice."
+                    );
+            }
+
+        } while (choice != 6);
+
+
+        scanner.close();
+    }
+}
